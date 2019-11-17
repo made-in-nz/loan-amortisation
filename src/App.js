@@ -66,29 +66,23 @@ class App extends Component {
     if (persistedState !== undefined) {
       this.setState(loadState());
     }
-    else {
-      this.setState({
-        amount: 100000,
-        date: '2019-10-01',
-        rate: 3.79,
-        repayment: 500,
-        repaydate: '2019-10-03',
-        repayfreq: 'Weekly',
-        summary: {},
-        enddate: ''
-      });
-    }
+    // else {
+    //   this.setState({
+    //     amount: 100000,
+    //     date: '2019-10-01',
+    //     rate: 3.79,
+    //     repayment: 500,
+    //     repaydate: '2019-10-03',
+    //     repayfreq: 'Weekly',
+    //     summary: {},
+    //     enddate: ''
+    //   });
+    // }
   }
-
-  // componentDidUpdate(prevProps) {
-  //   // this.generate();
-  //   saveState(this.state);
-  // }
 
   handleChange(event) {
     const {name, id, value} = event.target;
     name ? this.setState({[name] : value}, this.generate) : this.setState({[id] : value}, this.generate);
-    saveState(this.state);
   }
 
   repaymentDates() {
@@ -99,15 +93,27 @@ class App extends Component {
     }
 
     let end = moment(this.state.enddate);
-    // end.add(1, 'months').date(1);
     r.push(moment(this.state.repaydate));
 
     let start = moment(this.state.repaydate);
-    start.add(frequency[this.state.repayfreq], 'days');
 
-    while (start.isSameOrBefore(end)) {
-      r.push(moment(start));
+    // console.log('repayfreq', this.state.repayfreq);
+    if (this.state.repayfreq === 'Weekly') {
       start.add(frequency[this.state.repayfreq], 'days');
+
+      while (start.isSameOrBefore(end)) {
+        r.push(moment(start));
+        start.add(frequency[this.state.repayfreq], 'days');
+      }
+    }
+    else {
+      // Monthly repayments
+      start.add(1, 'months');
+
+      while (start.isSameOrBefore(end)) {
+        r.push(moment(start));
+        start.add(1, 'months');
+      }
     }
 
     return r;
@@ -142,7 +148,19 @@ class App extends Component {
     if (Object.values(this.state).every((a) => a !== '')) {
       let ldate = moment(this.state.date);
       let rdate = moment(this.state.repaydate);
-      if (rdate.isBefore(ldate)) {
+      let edate = moment(this.state.enddate);
+      // Prevent schedules for crazy length periods
+      if (ldate.isBefore(moment('2019-01-01'))) {
+        // console.log('before 1/1/2019');
+        return false;
+      }
+      // Limit loan period to 5 years
+      if (edate.isAfter(moment(ldate).add(5, 'years'))) {
+        // console.log('more than 5 years');
+        return false;
+      }
+      if (rdate.isBefore(ldate) || edate.isBefore(ldate)) {
+        // console.log('enddate date before start date');
         return false;
       }
       return true;
@@ -159,11 +177,11 @@ class App extends Component {
 
 
   generate() {
+    saveState(this.state);
     if (! this.shouldGenerateSchedule()) {
       this.setState({schedule: undefined});
       return;
     }
-    // console.log(this.state);
 
     let bamount = Big(this.state.amount);
     let daily = this.dailyInterest(bamount);
@@ -207,6 +225,8 @@ class App extends Component {
                       );
       }
     }
+    /* Apply the accrued interest to get the final balance.
+    */
     bamount = bamount.plus(accrued);
     tsched.push({date: 'Final Balance',
                   balance: bamount.toFixed(2),
@@ -291,13 +311,14 @@ class App extends Component {
                   <Form.Group controlId="amount">
                     <Form.Label>Loan Amount</Form.Label>
                     <Form.Control 
-                      placeholder="Enter the loan amount from a statement on the date that interest has been charged." 
                       type='number'
                       min='0'
-                      name="amount"
                       value={this.state.amount}
                       onChange={this.handleChange}
                     />
+                    <Form.Text className="text-muted">
+                      This should be the starting loan amount, or an amount taken from a statement on a date which interest was charged (ie no accrued interest).
+                    </Form.Text>
                   </Form.Group>
                 </Col>
                 <Col>
@@ -309,6 +330,9 @@ class App extends Component {
                       value={this.state.date}
                       onChange={this.handleChange}
                     />
+                    <Form.Text className="text-muted">
+                      Earliest permitted date is 1/1/2019.
+                    </Form.Text>
                   </Form.Group>
                 </Col>
               </Row>
@@ -354,7 +378,7 @@ class App extends Component {
                     >
                       <option></option>
                       <option>Weekly</option>
-                      {/* <option>Monthly</option> */}
+                      <option>Monthly</option>
                     </Form.Control>
                   </Form.Group>
                 </Col>
@@ -380,6 +404,9 @@ class App extends Component {
                       value={this.state.enddate}
                       onChange={this.handleChange}
                     />
+                    <Form.Text className="text-muted">
+                      No more than 5 years from the start date.
+                    </Form.Text>
                   </Form.Group>
                 </Col>
               </Row>
