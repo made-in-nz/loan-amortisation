@@ -1,12 +1,14 @@
 import React, { Component } from 'react';
 import moment from 'moment';
 import Form from 'react-bootstrap/Form';
+import Alert from 'react-bootstrap/Alert';
 import Container from 'react-bootstrap/Container';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
 import Table from 'react-bootstrap/Table';
 import InputGroup from 'react-bootstrap/InputGroup';
 import Card from 'react-bootstrap/Card';
+import Button from 'react-bootstrap/Button';
 import Big from 'big.js';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
@@ -16,7 +18,8 @@ const key = 'loan-state';
 // Big.DP = 8;
 
 const frequency = {
-  'Weekly': 7
+  'Weekly': 7,
+  'Fortnightly': 14 
 }
 
 const loadState = () => {
@@ -49,6 +52,7 @@ class App extends Component {
       amount: '',
       date: '',
       rate: '',
+      compounds: '',
       repayment: '',
       repaydate: '',
       repayfreq: '',
@@ -58,6 +62,7 @@ class App extends Component {
       schedule: undefined
     };
     this.handleChange = this.handleChange.bind(this);
+    this.generate = this.generate.bind(this);
   }
 
   componentDidMount() {
@@ -69,20 +74,20 @@ class App extends Component {
     // else {
     //   this.setState({
     //     amount: 100000,
-    //     date: '2019-10-01',
+    //     date: '2019-12-01',
+    //     enddate: '2021-12-01',
     //     rate: 3.79,
     //     repayment: 500,
-    //     repaydate: '2019-10-03',
+    //     repaydate: '2019-12-03',
     //     repayfreq: 'Weekly',
     //     summary: {},
-    //     enddate: ''
     //   });
     // }
   }
 
   handleChange(event) {
     const {name, id, value} = event.target;
-    name ? this.setState({[name] : value}, this.generate) : this.setState({[id] : value}, this.generate);
+    name ? this.setState({[name] : value}) : this.setState({[id] : value});
   }
 
   repaymentDates() {
@@ -98,16 +103,7 @@ class App extends Component {
     let start = moment(this.state.repaydate);
 
     // console.log('repayfreq', this.state.repayfreq);
-    if (this.state.repayfreq === 'Weekly') {
-      start.add(frequency[this.state.repayfreq], 'days');
-
-      while (start.isSameOrBefore(end)) {
-        r.push(moment(start));
-        start.add(frequency[this.state.repayfreq], 'days');
-      }
-    }
-    else {
-      // Monthly repayments
+    if (this.state.repayfreq === 'Monthly') {
       start.add(1, 'months');
 
       while (start.isSameOrBefore(end)) {
@@ -115,12 +111,23 @@ class App extends Component {
         start.add(1, 'months');
       }
     }
+    else {
+      start.add(frequency[this.state.repayfreq], 'days');
+
+      while (start.isSameOrBefore(end)) {
+        r.push(moment(start));
+        start.add(frequency[this.state.repayfreq], 'days');
+      }
+    }
 
     return r;
   }
 
   isCompoundingDate(current) {
-    return current.date() === 1;
+    if (this.state.compounds === 'month') {
+      return current.date() === 1;
+    }
+    return this.isRepaymentDate(current);
   }
 
   isRepaymentDate(current) {
@@ -129,17 +136,17 @@ class App extends Component {
     return f !== undefined;
   }
 
-  displayRepaymentDates() {
-    const repaydates = this.repaymentDates();
-    return (
-      <>
-        <p>Repayment Dates</p>
-        <ul>
-          {repaydates.map((d, i) => <li key={i}>{d.format('YYYY-MM-DD')}</li>)}
-        </ul>
-      </>
-    )
-  }
+  // displayRepaymentDates() {
+  //   const repaydates = this.repaymentDates();
+  //   return (
+  //     <>
+  //       <p>Repayment Dates</p>
+  //       <ul>
+  //         {repaydates.map((d, i) => <li key={i}>{d.format('YYYY-MM-DD')}</li>)}
+  //       </ul>
+  //     </>
+  //   )
+  // }
 
   /* Every form field should be filled.
    * repaydate can't be before loan date.
@@ -152,19 +159,24 @@ class App extends Component {
       // Prevent schedules for crazy length periods
       if (ldate.isBefore(moment('2019-01-01'))) {
         // console.log('before 1/1/2019');
+        this.setState({incomplete: true});
         return false;
       }
       // Limit loan period to 5 years
       if (edate.isAfter(moment(ldate).add(5, 'years'))) {
         // console.log('more than 5 years');
+        this.setState({incomplete: true});
         return false;
       }
       if (rdate.isBefore(ldate) || edate.isBefore(ldate)) {
         // console.log('enddate date before start date');
+        this.setState({incomplete: true});
         return false;
       }
+      this.setState({incomplete: false});
       return true;
     }
+    this.setState({incomplete: true});
     return false;
   }
 
@@ -215,7 +227,7 @@ class App extends Component {
       if ((this.state.display === 'monthly' &&
           this.isCompoundingDate( m )) ||
           this.state.display === 'daily') {
-        tsched.push({date: m.format('YYYY-MM-DD'),
+        tsched.push({date: m.format('DD/MM/YYYY'),
                       balance: bamount.toFixed(2),
                       accrued: accrued.toFixed(2),
                       paccrued: paccrued.toFixed(2),
@@ -234,8 +246,13 @@ class App extends Component {
                   daily: ''}
                   );
 
+    summary.principal = summary.repayment.minus(summary.interest).toFixed(2);
     summary.interest = summary.interest.toFixed(2);
     summary.repayment = summary.repayment.toFixed(2);
+    summary.sdate = moment(this.state.date).format('DD/MM/YYYY');
+    summary.edate = moment(this.state.enddate).format('DD/MM/YYYY');
+    summary.amount = this.state.amount;
+    summary.display = this.state.display;
     this.setState({schedule: tsched, summary});
   }
 
@@ -277,7 +294,7 @@ class App extends Component {
         <thead>
           <tr>
             <th>Date</th>
-            <th className='text-right'>Interest (previous month)</th>
+            <th className='text-right'>Interest (previous period)</th>
             <th className='text-right'>Loan Balance</th>
           </tr>
         </thead>
@@ -302,6 +319,9 @@ class App extends Component {
       <Container>
         <h1>Generate a Loan Amortisation Schedule</h1>
         <br/>
+        { this.state.incomplete &&
+          <Alert variant='danger'>Please enter valid values in <strong>every</strong> field.</Alert>
+        }
         <Row>
           <Col>
             <p>Fill out all fields in the form below and the amortisation schedule will automatically generate.</p>
@@ -354,7 +374,21 @@ class App extends Component {
                     </InputGroup>
                   </Form.Group>
                 </Col>
-                <Col/>
+                <Col>
+                  <Form.Group controlId="compounds">
+                    <Form.Label>Interest Compounds</Form.Label>
+                    <Form.Control 
+                      as="select" 
+                      placeholder="When does interest compound?" 
+                      value={this.state.compounds}
+                      onChange={this.handleChange}
+                    >
+                      <option></option>
+                      <option value='month'>1st of the Month</option>
+                      <option value='repayment'>Same day as repayments</option>
+                    </Form.Control>
+                  </Form.Group>
+                </Col>
               </Row>
               <Row>
                 <Col>
@@ -378,6 +412,7 @@ class App extends Component {
                     >
                       <option></option>
                       <option>Weekly</option>
+                      <option>Fortnightly</option>
                       <option>Monthly</option>
                     </Form.Control>
                   </Form.Group>
@@ -423,57 +458,61 @@ class App extends Component {
                     id='gen-daily' />
                   <Form.Check 
                     inline 
-                    label="Monthly" 
-                    name='display' 
+                    label="Weekly / Fortnightly / Monthly" 
+                    name='display'
                     value='monthly'
                     type='radio' 
                     onChange={this.handleChange}
                     id='gen-monthly' />
                 </div>
               </Form.Group>
+              <Button variant="success" onClick={this.generate}>Create Schedule</Button>
             </Form>
-            {this.displayRepaymentDates()}
+            <br/>
+            {/* {this.displayRepaymentDates()} */}
             <p>Assumptions:</p>
             <ul>
-              <li>Interest charged monthly on the first of the month.</li>
               <li>Interest accrued daily.</li>
               <li>Daily interest is calculated after adding repayment or interest compounding adjustment.</li>
             </ul>
           </Col>
           { this.state.schedule && this.state.schedule.length !== 0 &&
             <Col>
-              {/* <h2>Schedule</h2> */}
               <Card>
                 <Card.Body>
                 <h5>Summary</h5>
                 <Row>
                   <Col>Start date:</Col>
-                  <Col>{this.state.date}</Col>
+                  <Col>{this.state.summary.sdate}</Col>
                 </Row>
                 <Row>
                   <Col>End date:</Col>
-                  <Col>{this.state.enddate}</Col>
+                  <Col>{this.state.summary.edate}</Col>
                 </Row>
                 <Row>
                   <Col>Start balance:</Col>
-                  <Col>${this.state.amount}</Col>
+                  <Col>${this.state.summary.amount}</Col>
                 </Row>
                 <Row>
                   <Col>End balance:</Col>
                   <Col>${this.state.schedule[this.state.schedule.length -1].balance}</Col>
                 </Row>
                 <Row>
+                  <Col>Total repayments:</Col>
+                  <Col>${this.state.summary.repayment}</Col>
+                </Row>
+                <Row>
                   <Col>Total interest:</Col>
                   <Col>${this.state.summary.interest}</Col>
                 </Row>
                 <Row>
-                  <Col>Total repayments:</Col>
-                  <Col>${this.state.summary.repayment}</Col>
+                  <Col>Total principal paid:</Col>
+                  <Col>${this.state.summary.principal}</Col>
                 </Row>
                 </Card.Body>
               </Card>
-              {this.state.display === 'daily' && this.renderDailySchedule()}
-              {this.state.display === 'monthly' && this.renderMonthlySchedule()}
+              {this.state.summary.display === 'daily' && this.renderDailySchedule()}
+              {this.state.summary.display === 'monthly' && this.renderMonthlySchedule()}
             </Col>
           }
         </Row>
