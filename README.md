@@ -1,4 +1,4 @@
-A flexible loan amortisation schedule generator.
+A flexible loan amortisation schedule generator written in React.
 
 ## The Problem	
 
