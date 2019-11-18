@@ -15,13 +15,14 @@ import './App.css';
 
 const key = 'loan-state';
 
-// Big.DP = 8;
-
 const frequency = {
   'Weekly': 7,
   'Fortnightly': 14 
 }
 
+/* 
+ * Load state from sessionStorage.
+ */
 const loadState = () => {
     try {
         const serializedState = sessionStorage.getItem(key);
@@ -35,6 +36,9 @@ const loadState = () => {
     }
 };
 
+/* 
+ * Save state to sessionStorage.
+ */
 const saveState = (state) => {
     try {
         const serializedState = JSON.stringify(state);
@@ -46,6 +50,7 @@ const saveState = (state) => {
 };
 
 class App extends Component {
+	
   constructor(props) {
     super(props);
     this.state = { 
@@ -68,21 +73,24 @@ class App extends Component {
   componentDidMount() {
     const persistedState = loadState();
   
+		/*
+		 * handle page refreshes without losing state.
+		 */
     if (persistedState !== undefined) {
       this.setState(loadState());
     }
-    // else {
-    //   this.setState({
-    //     amount: 100000,
-    //     date: '2019-12-01',
-    //     enddate: '2021-12-01',
-    //     rate: 3.79,
-    //     repayment: 500,
-    //     repaydate: '2019-12-03',
-    //     repayfreq: 'Weekly',
-    //     summary: {},
-    //   });
-    // }
+    else {
+      this.setState({
+        amount: 100000,
+        date: '2019-12-01',
+        enddate: '2021-12-01',
+        rate: 3.79,
+        repayment: 500,
+        repaydate: '2019-12-03',
+        repayfreq: 'Weekly',
+        summary: {},
+      });
+    }
   }
 
   handleChange(event) {
@@ -91,18 +99,18 @@ class App extends Component {
   }
 
   repaymentDates() {
+    const { enddate, repaydate, repayfreq } = this.state;
     let r = [];
 
     if (! this.shouldGenerateSchedule()) {
       return r;
     }
 
-    let end = moment(this.state.enddate);
-    r.push(moment(this.state.repaydate));
+    let end = moment(enddate);
+    r.push(moment(repaydate));
 
-    let start = moment(this.state.repaydate);
+    let start = moment(repaydate);
 
-    // console.log('repayfreq', this.state.repayfreq);
     if (this.state.repayfreq === 'Monthly') {
       start.add(1, 'months');
 
@@ -112,11 +120,11 @@ class App extends Component {
       }
     }
     else {
-      start.add(frequency[this.state.repayfreq], 'days');
+      start.add(frequency[repayfreq], 'days');
 
       while (start.isSameOrBefore(end)) {
         r.push(moment(start));
-        start.add(frequency[this.state.repayfreq], 'days');
+        start.add(frequency[repayfreq], 'days');
       }
     }
 
@@ -136,40 +144,26 @@ class App extends Component {
     return f !== undefined;
   }
 
-  // displayRepaymentDates() {
-  //   const repaydates = this.repaymentDates();
-  //   return (
-  //     <>
-  //       <p>Repayment Dates</p>
-  //       <ul>
-  //         {repaydates.map((d, i) => <li key={i}>{d.format('YYYY-MM-DD')}</li>)}
-  //       </ul>
-  //     </>
-  //   )
-  // }
-
-  /* Every form field should be filled.
-   * repaydate can't be before loan date.
+  /* Basic validation for form.
+   * Every form field should be filled.
    */
   shouldGenerateSchedule() {
     if (Object.values(this.state).every((a) => a !== '')) {
       let ldate = moment(this.state.date);
       let rdate = moment(this.state.repaydate);
       let edate = moment(this.state.enddate);
+
       // Prevent schedules for crazy length periods
       if (ldate.isBefore(moment('2019-01-01'))) {
-        // console.log('before 1/1/2019');
         this.setState({incomplete: true});
         return false;
       }
       // Limit loan period to 5 years
       if (edate.isAfter(moment(ldate).add(5, 'years'))) {
-        // console.log('more than 5 years');
         this.setState({incomplete: true});
         return false;
       }
       if (rdate.isBefore(ldate) || edate.isBefore(ldate)) {
-        // console.log('enddate date before start date');
         this.setState({incomplete: true});
         return false;
       }
@@ -187,7 +181,6 @@ class App extends Component {
       return annual.div(365);
   }
 
-
   generate() {
     saveState(this.state);
     if (! this.shouldGenerateSchedule()) {
@@ -202,28 +195,40 @@ class App extends Component {
     let accrued = Big(0);
     let paccrued = Big(0);
 
-    /* Generate data for the schedule.
+    /* Generate data for the schedule and summary.
     */
     let tsched = [];
     let summary = {samount: bamount.toFixed(2),
                    interest: Big(0),
                    repayment: Big(0)
                   };
+
     for (var m = moment(this.state.date); m.isSameOrBefore(enddate); m.add(1, 'days')) {
+
       if (this.isRepaymentDate( m )) {
+        /* On a repayment date, reduce loan balance and calculate new
+         * daily interest.
+         */
         bamount = bamount.minus(this.state.repayment);
         daily = this.dailyInterest(bamount);
         summary.repayment = summary.repayment.add(this.state.repayment);
       } 
       if (this.isCompoundingDate( m )) {
+        /* On interest compounding date, increase loan balance, calculate new
+         * daily interest, and reset accrued interest.
+         */
         bamount = bamount.plus(accrued);
         paccrued = accrued;
         accrued = Big(0);
         daily = this.dailyInterest(bamount);
       } 
+      /* Last transaction of each day is to accrue the interest for the day.
+      */
       accrued = accrued.add(daily);
       summary.interest = summary.interest.add(daily);
 
+      /* Update the schedule data depending on the display type selected.
+       */
       if ((this.state.display === 'monthly' &&
           this.isCompoundingDate( m )) ||
           this.state.display === 'daily') {
@@ -237,7 +242,7 @@ class App extends Component {
                       );
       }
     }
-    /* Apply the accrued interest to get the final balance.
+    /* Apply any accrued interest to get the final loan balance.
     */
     bamount = bamount.plus(accrued);
     tsched.push({date: 'Final Balance',
@@ -324,7 +329,7 @@ class App extends Component {
         }
         <Row>
           <Col>
-            <p>Fill out all fields in the form below and the amortisation schedule will automatically generate.</p>
+            <p>Fill out all fields in the form below and select Create Schedule.</p>
             <Form>
               <Row>
                 <Col>
@@ -469,7 +474,6 @@ class App extends Component {
               <Button variant="success" onClick={this.generate}>Create Schedule</Button>
             </Form>
             <br/>
-            {/* {this.displayRepaymentDates()} */}
             <p>Assumptions:</p>
             <ul>
               <li>Interest accrued daily.</li>
@@ -480,7 +484,7 @@ class App extends Component {
             <Col>
               <Card>
                 <Card.Body>
-                <h5>Summary</h5>
+                <h5>Loan Summary</h5>
                 <Row>
                   <Col>Start date:</Col>
                   <Col>{this.state.summary.sdate}</Col>
@@ -511,6 +515,8 @@ class App extends Component {
                 </Row>
                 </Card.Body>
               </Card>
+              <br/>
+							<h5>Amortisation Schedule</h5>
               {this.state.summary.display === 'daily' && this.renderDailySchedule()}
               {this.state.summary.display === 'monthly' && this.renderMonthlySchedule()}
             </Col>
