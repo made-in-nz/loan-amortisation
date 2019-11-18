@@ -9,7 +9,7 @@ Turned out this proved that the bank was correct.
 
 This web app is statically served and runs entirely in the browser.
 
-Feel free to use it here [https://made-in-nz.github.io/loan-amortisation](https://made-in-nz.github.io), or clone and run it locally:
+Feel free to use it here [https://made-in-nz.github.io/loan-amortisation](https://made-in-nz.github.io/loan-amortisation), or clone and run it locally:
 
 In the project directory, run:
 
