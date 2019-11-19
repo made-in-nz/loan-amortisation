@@ -256,7 +256,7 @@ class App extends Component {
     summary.repayment = summary.repayment.toFixed(2);
     summary.sdate = moment(this.state.date).format('DD/MM/YYYY');
     summary.edate = moment(this.state.enddate).format('DD/MM/YYYY');
-    summary.amount = this.state.amount;
+    summary.amount = Big(this.state.amount).toFixed(2);
     summary.display = this.state.display;
     this.setState({schedule: tsched, summary});
   }
@@ -487,31 +487,38 @@ class App extends Component {
                 <h5>Loan Summary</h5>
                 <Row>
                   <Col>Start date:</Col>
-                  <Col>{this.state.summary.sdate}</Col>
+                  <Col className='text-right'>{this.state.summary.sdate}</Col>
+                  <Col xs={3}/>
                 </Row>
                 <Row>
                   <Col>End date:</Col>
-                  <Col>{this.state.summary.edate}</Col>
+                  <Col className='text-right'>{this.state.summary.edate}</Col>
+                  <Col xs={3}/>
                 </Row>
                 <Row>
                   <Col>Start balance:</Col>
-                  <Col>${this.state.summary.amount}</Col>
+                  <Col className='text-right'>${this.state.summary.amount}</Col>
+                  <Col xs={3}/>
                 </Row>
                 <Row>
                   <Col>End balance:</Col>
-                  <Col>${this.state.schedule[this.state.schedule.length -1].balance}</Col>
+                  <Col className='text-right'>${this.state.schedule[this.state.schedule.length -1].balance}</Col>
+                  <Col xs={3}/>
                 </Row>
                 <Row>
                   <Col>Total repayments:</Col>
-                  <Col>${this.state.summary.repayment}</Col>
+                  <Col className='text-right'>${this.state.summary.repayment}</Col>
+                  <Col xs={3}/>
                 </Row>
                 <Row>
                   <Col>Total interest:</Col>
-                  <Col>${this.state.summary.interest}</Col>
+                  <Col className='text-right'>${this.state.summary.interest}</Col>
+                  <Col xs={3}/>
                 </Row>
                 <Row>
                   <Col>Total principal paid:</Col>
-                  <Col>${this.state.summary.principal}</Col>
+                  <Col className='text-right'>${this.state.summary.principal}</Col>
+                  <Col xs={3}/>
                 </Row>
                 </Card.Body>
               </Card>
