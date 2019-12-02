@@ -55,14 +55,14 @@ class App extends Component {
     super(props);
     this.state = { 
       amount: '',
-      date: '',
+      startdate: '',
       rate: '',
       compounds: '',
       repayment: '',
       repaydate: '',
       repayfreq: '',
-      enddate: '',
       display: 'daily',
+      term: '',
       summary: {},
       schedule: undefined
     };
@@ -79,20 +79,18 @@ class App extends Component {
     if (persistedState !== undefined) {
       this.setState(loadState());
     }
-		/*
     else {
       this.setState({
-        amount: 100000,
-        date: '2019-12-01',
-        enddate: '2021-12-01',
+        amount: 200000,
+        startdate: '2019-08-09',
         rate: 3.79,
-        repayment: 500,
-        repaydate: '2019-12-03',
+        repayment: 225.51,
+        repaydate: '2019-08-13',
         repayfreq: 'Weekly',
+        compounds: 'month',
         summary: {},
       });
     }
-		*/
   }
 
   handleChange(event) {
@@ -101,14 +99,14 @@ class App extends Component {
   }
 
   repaymentDates() {
-    const { enddate, repaydate, repayfreq } = this.state;
+    const { term, startdate, repaydate, repayfreq } = this.state;
     let r = [];
 
     if (! this.shouldGenerateSchedule()) {
       return r;
     }
 
-    let end = moment(enddate);
+    let end = moment(startdate).add(term, 'months');
     r.push(moment(repaydate));
 
     let start = moment(repaydate);
@@ -151,21 +149,10 @@ class App extends Component {
    */
   shouldGenerateSchedule() {
     if (Object.values(this.state).every((a) => a !== '')) {
-      let ldate = moment(this.state.date);
-      let rdate = moment(this.state.repaydate);
-      let edate = moment(this.state.enddate);
+      let ldate = moment(this.state.startdate);
 
       // Prevent schedules for crazy length periods
       if (ldate.isBefore(moment('2019-01-01'))) {
-        this.setState({incomplete: true});
-        return false;
-      }
-      // Limit loan period to 5 years
-      if (edate.isAfter(moment(ldate).add(5, 'years'))) {
-        this.setState({incomplete: true});
-        return false;
-      }
-      if (rdate.isBefore(ldate) || edate.isBefore(ldate)) {
         this.setState({incomplete: true});
         return false;
       }
@@ -183,16 +170,24 @@ class App extends Component {
       return annual.div(365);
   }
 
+  getYear(m, s, y) { return m.isSameOrAfter(moment(s).add(y, 'years'), 'day') ? y+1 : y }; 
+
   generate() {
+    const { amount, 
+            display, 
+            startdate, 
+            repayment,
+            term } = this.state; 
+
     saveState(this.state);
     if (! this.shouldGenerateSchedule()) {
       this.setState({schedule: undefined});
       return;
     }
 
-    let bamount = Big(this.state.amount);
+    let bamount = Big(amount);
     let daily = this.dailyInterest(bamount);
-    let enddate = moment(this.state.enddate);
+    let enddate = moment(startdate).add(term, 'months').subtract('1', 'days');
 
     let accrued = Big(0);
     let paccrued = Big(0);
@@ -202,18 +197,27 @@ class App extends Component {
     let tsched = [];
     let summary = {samount: bamount.toFixed(2),
                    interest: Big(0),
-                   repayment: Big(0)
+                   repayment: Big(0),
+                   year: []
                   };
 
-    for (var m = moment(this.state.date); m.isSameOrBefore(enddate); m.add(1, 'days')) {
+    let year = 1;
+    let ysum = { 'year': year, interest: Big(0)};
+    for (var m = moment(startdate); m.isSameOrBefore(enddate); m.add(1, 'days')) {
+      let nyear = this.getYear(m, startdate, year);
+      if (nyear > year) {
+        summary.year.push(ysum);
+        year = nyear;
+        ysum = { 'year': year, interest: Big(0)};
+      }
 
       if (this.isRepaymentDate( m )) {
         /* On a repayment date, reduce loan balance and calculate new
          * daily interest.
          */
-        bamount = bamount.minus(this.state.repayment);
+        bamount = bamount.minus(repayment);
         daily = this.dailyInterest(bamount);
-        summary.repayment = summary.repayment.add(this.state.repayment);
+        summary.repayment = summary.repayment.add(repayment);
       } 
       if (this.isCompoundingDate( m )) {
         /* On interest compounding date, increase loan balance, calculate new
@@ -228,12 +232,13 @@ class App extends Component {
       */
       accrued = accrued.add(daily);
       summary.interest = summary.interest.add(daily);
+      ysum.interest = ysum.interest.add(daily);
 
       /* Update the schedule data depending on the display type selected.
        */
-      if ((this.state.display === 'monthly' &&
+      if ((display === 'monthly' &&
           this.isCompoundingDate( m )) ||
-          this.state.display === 'daily') {
+          display === 'daily') {
         tsched.push({date: m.format('DD/MM/YYYY'),
                       balance: bamount.toFixed(2),
                       accrued: accrued.toFixed(2),
@@ -256,10 +261,11 @@ class App extends Component {
     summary.principal = summary.repayment.minus(summary.interest).toFixed(2);
     summary.interest = summary.interest.toFixed(2);
     summary.repayment = summary.repayment.toFixed(2);
-    summary.sdate = moment(this.state.date).format('DD/MM/YYYY');
-    summary.edate = moment(this.state.enddate).format('DD/MM/YYYY');
-    summary.amount = Big(this.state.amount).toFixed(2);
-    summary.display = this.state.display;
+    summary.sdate = moment(startdate).format('DD/MM/YYYY');
+    summary.edate = moment(enddate).format('DD/MM/YYYY');
+    summary.amount = Big(amount).toFixed(2);
+    summary.display = display;
+    summary.year.push(ysum);
     this.setState({schedule: tsched, summary});
   }
 
@@ -321,6 +327,32 @@ class App extends Component {
     ) 
   }
 
+  renderSummaryByYear() {
+    if (this.state.summary.year.length <= 1) {
+      return null;
+    } 
+
+    return (
+      <>
+        {/* <Row>
+          <Col>Summary by Year</Col>
+        </Row> */}
+        { this.state.summary.year.map((k) => {
+            return (
+              <>
+                <Row key={k.year}>
+                  <Col>Year {k.year} Interest:</Col>
+                  <Col className='text-right'>${k.interest.toFixed(2)}</Col>
+                  <Col xs={3}/>
+                </Row>
+              </>
+            )
+          })
+        }
+      </>
+    )
+  }
+
   render() {
     return (
       <Container>
@@ -344,17 +376,17 @@ class App extends Component {
                       onChange={this.handleChange}
                     />
                     <Form.Text className="text-muted">
-                      This should be the starting loan amount, or an amount taken from a statement on a date which interest was charged (ie no accrued interest).
+                      The starting loan amount, or an amount taken from a statement on a date which interest was charged (ie no accrued interest).
                     </Form.Text>
                   </Form.Group>
                 </Col>
                 <Col>
-                  <Form.Group controlId="date">
+                  <Form.Group controlId="startdate">
                     <Form.Label>as at</Form.Label>
                     <Form.Control 
                       type="date" 
                       placeholder="Enter the date that your loan was this amount."
-                      value={this.state.date}
+                      value={this.state.startdate}
                       onChange={this.handleChange}
                     />
                     <Form.Text className="text-muted">
@@ -364,6 +396,25 @@ class App extends Component {
                 </Col>
               </Row>
               <Row>
+                <Col>
+                  <Form.Group controlId="term">
+                    <Form.Label>Loan Term</Form.Label>
+                    <Form.Control 
+                      as="select" 
+                      value={this.state.term}
+                      onChange={this.handleChange}
+                    >
+                      <option></option>
+                      <option value='6'>6 Months</option>
+                      <option value='18'>18 Months</option>
+                      <option value='12'>1 Year</option>
+                      <option value='24'>2 Years</option>
+                      <option value='36'>3 Years</option>
+                      <option value='48'>4 Years</option>
+                      <option value='60'>5 Years</option>
+                    </Form.Control>
+                  </Form.Group>
+                </Col>
                 <Col>
                   <Form.Group controlId="rate">
                     <Form.Label>Interest Rate</Form.Label>
@@ -379,21 +430,6 @@ class App extends Component {
                         <InputGroup.Text>%</InputGroup.Text>
                       </InputGroup.Append>
                     </InputGroup>
-                  </Form.Group>
-                </Col>
-                <Col>
-                  <Form.Group controlId="compounds">
-                    <Form.Label>Interest Compounds</Form.Label>
-                    <Form.Control 
-                      as="select" 
-                      placeholder="When does interest compound?" 
-                      value={this.state.compounds}
-                      onChange={this.handleChange}
-                    >
-                      <option></option>
-                      <option value='month'>1st of the Month</option>
-                      <option value='repayment'>Same day as repayments</option>
-                    </Form.Control>
                   </Form.Group>
                 </Col>
               </Row>
@@ -438,21 +474,21 @@ class App extends Component {
                   </Form.Group>
                 </Col>
                 <Col>
-                  <Form.Group controlId="enddate">
-                    <Form.Label>Loan Refinance Date</Form.Label>
+                  <Form.Group controlId="compounds">
+                    <Form.Label>Interest Compounds</Form.Label>
                     <Form.Control 
-                      type="date" 
-                      placeholder="Enter the date fixed loan is to be refinanced" 
-                      value={this.state.enddate}
+                      as="select" 
+                      value={this.state.compounds}
                       onChange={this.handleChange}
-                    />
-                    <Form.Text className="text-muted">
-                      No more than 5 years from the start date.
-                    </Form.Text>
+                    >
+                      <option></option>
+                      <option value='month'>1st of the Month</option>
+                      <option value='repayment'>Same day as repayments</option>
+                    </Form.Control>
                   </Form.Group>
                 </Col>
               </Row>
-              <Form.Group controlId="enddate">
+              <Form.Group>
                 <Form.Label>Generate Schedule</Form.Label>
                 <div key='inline-radio' className="mb-3">
                   <Form.Check 
@@ -522,6 +558,7 @@ class App extends Component {
                   <Col className='text-right'>${this.state.summary.principal}</Col>
                   <Col xs={3}/>
                 </Row>
+                {this.renderSummaryByYear()}
                 </Card.Body>
               </Card>
               <br/>
