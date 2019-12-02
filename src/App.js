@@ -79,6 +79,7 @@ class App extends Component {
     if (persistedState !== undefined) {
       this.setState(loadState());
     }
+		/*
     else {
       this.setState({
         amount: 200000,
@@ -91,6 +92,7 @@ class App extends Component {
         summary: {},
       });
     }
+		*/
   }
 
   handleChange(event) {
