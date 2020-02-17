@@ -27,9 +27,9 @@ class LoanAmortisation extends Component {
       rate: '',
       term: '',
       repayment: '',
-      startdate: moment().format('YYYY-MM-DD'),
+      startdate: moment().add(1, 'months').date(1).format('YYYY-MM-DD'),
       compounds: 'month',
-      repaydate: moment().add(1, 'months').date(1).format('YYYY-MM-DD'),
+      repaydate: moment().add(2, 'months').date(1).format('YYYY-MM-DD'),
       repayfreq: '',
       display: 'daily',
       summary: {},
@@ -47,6 +47,14 @@ class LoanAmortisation extends Component {
 		 */
     if (persistedState !== undefined) {
       this.setState(persistedState);
+    console.log('mount')
+    console.log('repayfreq', persistedState.repayfreq)
+      if (persistedState.repayfreq === 26) {
+        this.setState({repaydate: moment().add(1, 'months').date(1).add(14, 'days').format('YYYY-MM-DD'),} )
+      }
+      else if (persistedState.repayfreq === 52) {
+        this.setState({repaydate: moment().add(1, 'months').date(1).add(7, 'days').format('YYYY-MM-DD'),} )
+      }
     }
   }
 
