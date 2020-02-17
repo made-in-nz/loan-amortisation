@@ -12,8 +12,8 @@ import Big from 'big.js';
 import { saveState, loadState } from './App';
 
 const frequency = {
-  'Weekly': 7,
-  'Fortnightly': 14 
+  52: 7,
+  26: 14 
 }
 
 export const storageKey = 'la-sched';
@@ -30,7 +30,7 @@ class LoanAmortisation extends Component {
       startdate: moment().format('YYYY-MM-DD'),
       compounds: 'month',
       repaydate: moment().add(1, 'months').date(1).format('YYYY-MM-DD'),
-      repayfreq: 'Monthly',
+      repayfreq: '',
       display: 'daily',
       summary: {},
       schedule: undefined
@@ -76,7 +76,7 @@ class LoanAmortisation extends Component {
 
     let start = moment(repaydate);
 
-    if (this.state.repayfreq === 'Monthly') {
+    if (parseInt(this.state.repayfreq) === 12) {
       start.add(1, 'months');
 
       while (start.isSameOrBefore(end)) {
@@ -86,12 +86,12 @@ class LoanAmortisation extends Component {
       }
     }
     else {
-      start.add(frequency[repayfreq], 'days');
+      start.add(frequency[parseInt(repayfreq)], 'days');
 
       while (start.isSameOrBefore(end)) {
         r.push(new Date(start.format('YYYY-MM-DD')));
         // r.push(moment(start));
-        start.add(frequency[repayfreq], 'days');
+        start.add(frequency[parseInt(repayfreq)], 'days');
       }
     }
 
@@ -464,9 +464,9 @@ class LoanAmortisation extends Component {
                       onChange={this.handleChange}
                     >
                       <option></option>
-                      <option>Weekly</option>
-                      <option>Fortnightly</option>
-                      <option>Monthly</option>
+                      <option value='52'>Weekly</option>
+                      <option value='26'>Fortnightly</option>
+                      <option value='12'>Monthly</option>
                     </Form.Control>
                   </Form.Group>
                 </Col>

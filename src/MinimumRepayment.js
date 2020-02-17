@@ -23,6 +23,7 @@ const MinimumRepayment = (props) => {
                           amount: '',
                           rate: '',
                           term: '',
+                          freq: '',
                           mterm: undefined,
                           alert: undefined
                         };
@@ -34,11 +35,13 @@ const MinimumRepayment = (props) => {
     dispatch({field: e.target.name, value: e.target.value});
   }
 
-  const {amount, rate, mrate, term } = state;
+  const {amount, rate, urate, uterm, term, freq } = state;
 
   useEffect(() => {
-    dispatch({field: 'mrate', value: rate / 1200})
-  },[rate]);
+    // dispatch({field: 'mrate', value: rate / 1200});
+    dispatch({field: 'urate', value: rate / (freq * 100)});
+    dispatch({field: 'uterm', value: term * freq });
+  },[rate, freq, term]);
 
   useEffect(() => {
   },[state]);
@@ -50,23 +53,24 @@ const MinimumRepayment = (props) => {
       return;
     }
 
-    const rpv = Big(mrate).times(Big(amount));
-    const denom = Big(1).minus((Big(1).plus(Big(mrate))).pow(term * -1));
+    const rpv = Big(urate).times(Big(amount));
+    const denom = Big(1).minus((Big(1).plus(Big(urate))).pow(uterm * -1));
     const mrp = rpv.div(denom).toFixed(2);
     dispatch({field: 'mrp', value: mrp});
 
     const laState = loadState(laKey) !== undefined ? 
                     loadState(laKey) : {};
 
+    console.log('freq', freq)
     saveState (storageKey, {...state});
     saveState (laKey, 
       {...laState, 
         amount: amount,
         rate: rate,
-        term: term,
+        term: (term * 12),
         repayment: mrp,
         compounds: 'month',
-        repayfreq: 'Monthly',
+        repayfreq: parseInt(freq),
         summary: {},
         schedule: undefined
       });
@@ -118,36 +122,53 @@ const MinimumRepayment = (props) => {
                   onChange={onChange}
                   value={term} >
                   <option></option>
-                  <option value='12'>1 Year</option>
-                  <option value='24'>2 Years</option>
-                  <option value='36'>3 Years</option>
-                  <option value='48'>4 Years</option>
-                  <option value='60'>5 Years</option>
-                  <option value='72'>6 Years</option>
-                  <option value='84'>7 Years</option>
-                  <option value='96'>8 Years</option>
-                  <option value='108'>9 Years</option>
-                  <option value='120'>10 Years</option>
-                  <option value='132'>11 Years</option>
-                  <option value='144'>12 Years</option>
-                  <option value='156'>13 Years</option>
-                  <option value='168'>14 Years</option>
-                  <option value='180'>15 Years</option>
-                  <option value='192'>16 Years</option>
-                  <option value='204'>17 Years</option>
-                  <option value='216'>18 Years</option>
-                  <option value='228'>19 Years</option>
-                  <option value='240'>20 Years</option>
-                  <option value='252'>21 Years</option>
-                  <option value='264'>22 Years</option>
-                  <option value='276'>23 Years</option>
-                  <option value='288'>24 Years</option>
-                  <option value='300'>25 Years</option>
-                  <option value='312'>26 Years</option>
-                  <option value='324'>27 Years</option>
-                  <option value='336'>28 Years</option>
-                  <option value='348'>29 Years</option>
-                  <option value='360'>30 Years</option>
+                  <option value='1'>1 Year</option>
+                  <option value='2'>2 Years</option>
+                  <option value='3'>3 Years</option>
+                  <option value='4'>4 Years</option>
+                  <option value='5'>5 Years</option>
+                  <option value='6'>6 Years</option>
+                  <option value='7'>7 Years</option>
+                  <option value='8'>8 Years</option>
+                  <option value='9'>9 Years</option>
+                  <option value='10'>10 Years</option>
+                  <option value='11'>11 Years</option>
+                  <option value='12'>12 Years</option>
+                  <option value='13'>13 Years</option>
+                  <option value='14'>14 Years</option>
+                  <option value='15'>15 Years</option>
+                  <option value='16'>16 Years</option>
+                  <option value='17'>17 Years</option>
+                  <option value='18'>18 Years</option>
+                  <option value='19'>19 Years</option>
+                  <option value='20'>20 Years</option>
+                  <option value='21'>21 Years</option>
+                  <option value='22'>22 Years</option>
+                  <option value='23'>23 Years</option>
+                  <option value='24'>24 Years</option>
+                  <option value='25'>25 Years</option>
+                  <option value='26'>26 Years</option>
+                  <option value='27'>27 Years</option>
+                  <option value='28'>28 Years</option>
+                  <option value='29'>29 Years</option>
+                  <option value='30'>30 Years</option>
+                </Form.Control>
+              </Form.Group>
+            </Col>
+          </Row>
+          <Row>
+            <Col>
+              <Form.Group controlId="term">
+                <Form.Label>Repayment Frequency</Form.Label>
+                <Form.Control 
+                  name='freq'
+                  as="select" 
+                  onChange={onChange}
+                  value={freq} >
+                  <option/>
+                  <option value='12'>Monthly</option>
+                  <option value='26'>Fortnightly</option>
+                  <option value='52'>Weekly</option>
                 </Form.Control>
               </Form.Group>
             </Col>
