@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/loan-amortisation/precache-manifest.e8c4f6ab2a41714dd94747cc713ce467.js"
+  "/loan-amortisation/precache-manifest.c41761f7d54c495fd9a117faf8441da1.js"
 );
 
 self.addEventListener('message', (event) => {
