@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/loan-amortisation/static/css/main.890fcf33.chunk.css",
-    "main.js": "/loan-amortisation/static/js/main.7efe4639.chunk.js",
-    "main.js.map": "/loan-amortisation/static/js/main.7efe4639.chunk.js.map",
+    "main.js": "/loan-amortisation/static/js/main.bf8e1c7a.chunk.js",
+    "main.js.map": "/loan-amortisation/static/js/main.bf8e1c7a.chunk.js.map",
     "runtime-main.js": "/loan-amortisation/static/js/runtime-main.67a3f63e.js",
     "runtime-main.js.map": "/loan-amortisation/static/js/runtime-main.67a3f63e.js.map",
     "static/css/2.47e06e2e.chunk.css": "/loan-amortisation/static/css/2.47e06e2e.chunk.css",
     "static/js/2.b5bbb545.chunk.js": "/loan-amortisation/static/js/2.b5bbb545.chunk.js",
     "static/js/2.b5bbb545.chunk.js.map": "/loan-amortisation/static/js/2.b5bbb545.chunk.js.map",
     "index.html": "/loan-amortisation/index.html",
-    "precache-manifest.c41761f7d54c495fd9a117faf8441da1.js": "/loan-amortisation/precache-manifest.c41761f7d54c495fd9a117faf8441da1.js",
+    "precache-manifest.c31dea47f2a95bb286b6246d31fcb39b.js": "/loan-amortisation/precache-manifest.c31dea47f2a95bb286b6246d31fcb39b.js",
     "service-worker.js": "/loan-amortisation/service-worker.js",
     "static/css/2.47e06e2e.chunk.css.map": "/loan-amortisation/static/css/2.47e06e2e.chunk.css.map",
     "static/css/main.890fcf33.chunk.css.map": "/loan-amortisation/static/css/main.890fcf33.chunk.css.map",
@@ -20,6 +20,6 @@
     "static/css/2.47e06e2e.chunk.css",
     "static/js/2.b5bbb545.chunk.js",
     "static/css/main.890fcf33.chunk.css",
-    "static/js/main.7efe4639.chunk.js"
+    "static/js/main.bf8e1c7a.chunk.js"
   ]
 }

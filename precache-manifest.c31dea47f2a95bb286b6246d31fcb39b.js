@@ -1,6 +1,6 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "fdf49c2578deb6ef7a615fe558add2c8",
+    "revision": "af6b27f68d9b32b347d46d5e1a4e3000",
     "url": "/loan-amortisation/index.html"
   },
   {
@@ -8,7 +8,7 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/loan-amortisation/static/css/2.47e06e2e.chunk.css"
   },
   {
-    "revision": "66e39d9ef6465fd1d739",
+    "revision": "ff1855f65cabffdfa051",
     "url": "/loan-amortisation/static/css/main.890fcf33.chunk.css"
   },
   {
@@ -20,8 +20,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/loan-amortisation/static/js/2.b5bbb545.chunk.js.LICENSE.txt"
   },
   {
-    "revision": "66e39d9ef6465fd1d739",
-    "url": "/loan-amortisation/static/js/main.7efe4639.chunk.js"
+    "revision": "ff1855f65cabffdfa051",
+    "url": "/loan-amortisation/static/js/main.bf8e1c7a.chunk.js"
   },
   {
     "revision": "e653fc10a7238c9fc438",
